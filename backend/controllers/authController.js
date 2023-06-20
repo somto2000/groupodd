@@ -1,7 +1,8 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Enrollee = require('../models/enrollee');
-const sendmail = require('../controllers/sendmail');
+const sendEmail = require('../controllers/sendmail');
+
 
 const registerEnrollee = async (req, res) => {
   try {
@@ -22,92 +23,68 @@ const registerEnrollee = async (req, res) => {
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
+    let newEnrollee;
+
     if (isTeacher) {
-      newUser = {
+      newEnrollee = {
         name,
         email,
-        password: passwordHash,
+        password: hashedPassword,
         Teacher: isTeacher,
       };
     } else {
       // Create a new enrollee
-      const enrollee = new Enrollee({ name, email, password: hashedPassword });
-      await enrollee.save();
-      console.log(enrollee);
-    };
+      newEnrollee = new Enrollee({ name, email, password: hashedPassword });
+      await newEnrollee.save();
+      console.log(newEnrollee);
+    }
 
-    const activation_token = createActivationToken(newEnrollee);
-
-    const url = `${CLIENT_URL}user/activate/${activation_token}`;
-    sendMail(email, url, name, "Verify your email address");
+    // Generate and send OTP via email
+    const otp = generateOTP();
+    sendOTPByEmail(email, otp);
 
     res.status(200).json({
-      msg: "Register Success! Please activate your email to start.",
+      msg: 'Register Success! Please enter the OTP sent to your email to complete the verification.',
     });
   } catch (err) {
     return res.status(500).json({ msg: err.message });
   }
-},
-  activateEmail = async (req, res) => {
-    try {
-      //http://localhost:5000/user/activation
-      /*register : after the user set the fields we send a request to check 
-            if evryething fine and the email not already in DB and set the token with user 
-            */
-      /* activateEmail: if click to the lien of email that we send it  -  send a req with the token_code(user)
-       */
-      const { activation_token } = req.body;
-      const enrollee = jwt.verify(
-        activation_token,
-        process.env.ACTIVATION_TOKEN_SECRET
-      );
-      /*console.log(user);
-            //that user contain all fields {
-            name: 'User 01',
-             email: 'somtoo01@gmail.com',
-             password: '$2b$12$6fOX2Q6gm4Fc9yX.HxmX6e0//dlsO2LbYG6m6rmzecOvfv4BAr3a.',
-             iat: 1620786747,
-             exp: 1620787347
-            }*/
-      const { name, email, password, Teacher, description, headline } = enrollee;
-      //check if the enrollee already registred
-      const check = await Enrollee.findOne({ email });
-      if (check)
-        return res.status(400).json({ msg: "This email already exist" });
-      //if not create one and save it to DB
-      if (Teacher) {
-        const newEnrollee = new Enrollee({
-          name,
-          email,
-          password,
-          Teacher,
-          description,
-          headline,
-        });
-        await newEnrollee.save();
-        res.json({ msg: "Account has been activated!" });
-      } else {
-        const newEnrollee = new Enrollee({ name, email, password });
-        await newEnrollee.save();
-        res.json({ msg: "Account has been activated!" });
-      }
-      // Generate a JWT token
-      const token = jwt.sign({ enrolleeId: enrollee._id }, process.env.JWT_SECRET, {
-        expiresIn: '1d',
-      });
+};
 
-      return res.status(201).json({
-        success: true,
-        enrollee,
-        token
-      });
-  // catch (error) {
-  //       res.status(500).json({ error: 'Failed to register enrollee' });
-  //     }
-    } catch (err) {
-      return res.status(500).json({ msg: err.message });
+const activateEmail = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    // Verify the OTP (you need to implement this function)
+    if (!verifyOTP(email, otp)) {
+      return res.status(400).json({ error: 'Invalid OTP' });
     }
-  };
+
+    // Update the enrollee status as verified
+    // ...
+
+    res.json({ msg: 'Email verification successful!' });
+  } catch (err) {
+    return res.status(500).json({ msg: err.message });
+  }
+};
+
+// Helper function to generate OTP
+function generateOTP() {
+  // ...
+  return '123456'; // Replace with your generated OTP
+}
+
+// Helper function to send OTP via email (you need to implement this function)
+function sendOTPByEmail(email, otp) {
+  console.log(`OTP: ${otp} is sent to ${email}`);
+}
+
+// Helper function to verify OTP (you need to implement this function)
+function verifyOTP(email, otp) {
+  // ...
+  return otp === '123456'; // Replace with your OTP verification logic
+}
 
 const loginEnrollee = async (req, res) => {
   try {
@@ -124,7 +101,7 @@ const loginEnrollee = async (req, res) => {
     if (!isPasswordValid) {
       return res.status(400).json({ error: 'Invalid email or password' });
     }
-       // Generate a JWT token
+    // Generate a JWT token
     const token = jwt.sign({ enrolleeId: enrollee._id }, process.env.JWT_SECRET, {
       expiresIn: '1d',
     });
@@ -194,5 +171,8 @@ module.exports = {
   logoutEnrollee,
   activateEmail,
   getAccessToken,
-  sendmail,
+  sendEmail,
+  generateOTP,
+  sendOTPByEmail,
+  verifyOTP,
 };

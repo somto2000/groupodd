@@ -4,9 +4,9 @@ const { registerEnrollee, loginEnrollee, logoutEnrollee, activateEmail, getAcces
 const {
     forgotPassword,
     resetPassword,
-    getEnrolleeInfor,
-    getEnrolleeAllInfor,
-    updateEnrolleerole
+    getEnrolleeInfo,
+    getEnrolleeAllInfo,
+    updateEnrolleeRole
 } = require("../controllers/enrolleeController");
 
 router.post('/register', registerEnrollee);
@@ -14,9 +14,9 @@ router.post('/login', loginEnrollee);
 router.post('/logout', logoutEnrollee);
 router.post('/forgot', forgotPassword);
 router.post('/getprofile', resetPassword);
-router.get('/getProfile', getEnrolleeInfor);
-router.get('/getProfile', getEnrolleeAllInfor);
-router.put('/updateProfile', updateEnrolleerole);
+router.get('/getProfile', getEnrolleeInfo);
+router.get('/getProfile', getEnrolleeAllInfo);
+router.put('/updateProfile', updateEnrolleeRole);
 router.post('/activation', activateEmail);
 router.post('/refresh_token', getAccessToken);
 
